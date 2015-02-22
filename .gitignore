@@ -1,6 +1,5 @@
 mcsaves/options.txt
 *.ogg
-mcsaves/stats//
-mcsaves/resource//
-mcsaves/texturepacks//
+*.mus
 *.pyc
+*.rar
