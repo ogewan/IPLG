@@ -19,13 +19,13 @@ except ImportError:
         raise
     sys.path.append(extrasearchpath)
 from nbt.nbt import NBTFile, TAG_Short, TAG_Int, TAG_String, TAG_List, TAG_Byte, TAG_Byte_Array, TAG_Compound
-from nbt.chunk import Chunk
-
 """'
-process:
-create seed source, generate book from sorce map block array
-use seed to create .schematics with books
-book is a base91 string representing a the 3D block array
+methodology:
+MCEdit(Minecraft World) -> NBTExplorer(.schematic) -> text2book(block array) -> source book
+source book -> child book
+child book -> MCEdit(.schematic) -> Minecraft World
+nbtexplorer can export .schematic block array as text which is coverted to
+a book(base91 string) representing a the 3D block array
 The translation table is composed of the remaining characters as shown below.
 
 0	A	0x41	 	13	N	0x4E	 	26	a	0x61	 	39	n	0x6E	 	52	0	0x30	 	65	%	0x25	 	78	>	0x3E
@@ -47,47 +47,17 @@ iindex = {y:x for x,y in index.items()} #inverse index
 
 class foo():
     id = 10
-
-"""
-def convertbook(world_folder):
-    world = McRegionWorldFolder(world_folder)  # map still only supports McRegion maps
-    t = world.chunk_count()
-    mapMAX = t*32768
-    mapstr = '"'*mapMAX
-    mape = list(mapstr)
-    i = 0.0
-    for chunk in world.iter_chunks():
-        if i % 50 ==0:
-            sys.stdout.write("creating book(Source)")
-        elif i % 2 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        elif i % 50 == 49:
-            sys.stdout.write("%5.1f%%\n" % (100*i/t))
-        i +=1
-        cx,cz = chunk.get_coords()
-        for z in range(16):
-            for x in range(16):
-                for y in range(128):
-                    block_id = chunk.blocks.get_block(x,y,z)
-                    if block_id > 89: block_id = 12 #turn block into sand if it is not first 91 blocks
-                    #91st entry changed to null
-                    mape[(cx*16 + x) + y*128 + (cz*16 + z)*128*16] = index[block_id]
-                    
-    print(" done\n")
-    filename = os.path.basename(world_folder)+".source"
-    mapstr = ''.join(mape)
-    with open('books/'+filename, 'w') as fi:
-        fi.write(mapstr)
-    print("Saved book as %s" % filename)
-    #return 0
-    return filename,mapstr
-"""
-    
+  
 def genblst():
-    return [0]*4194304,'A'4*419430
+    return [0]*4194304,'A'*4194304
 
 def _schema(h=256,l=128,w=128,blst=[0]*4194304):
+    if len(blst) < 4194304:
+        #pad
+        blst = blst + [0]*(4194304-len(blst))
+    elif len(blst) > 4194304:
+        #truncate
+        blst = blst[:4194304]
     result = NBTFile() #Blank NBT
     result.name = "Schematic"
     result.tags.extend([
@@ -116,94 +86,77 @@ def gbba(blocksList, buffer=False):
 def main():
     gui = """
 #########################################################
-Intelligent Procedural Level Generation #1.00
-using Minecraft
+Intelligent Procedural Level Generation #2.00
+using Minecraft, MCEdit, NBTExplorer
 source: {}
-commands: create source - 0, blank schematic - 1,
-generate schematic - 2, random schematic - 3, exit - 4
-random schematic LEGAL - 5
+cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
 """
-    try:
-        sourcename = glob.glob('books/*.source')[0]
-        f = open(sourcename,'r')
-        source = f.read()
-        f.close()
-    except:
-        sourcename = ""
-        source = ""
     while True:
-        print(gui.format(sourcename))
-        if source == "~":
-            world_folder = input('<SEED REQUIRED>Select Source Schematic:')
-            if world_folder == "":
-                continue
-            #sourcename,source = convertbook(world_folder)
-            sourcename = "books/"+sourcename
+        try:
+            print(gui.format(sourcename))
+        except:
             try:
+                sourcename = glob.glob('books/*.source')[0]
                 f = open(sourcename,'r')
                 source = f.read()
                 f.close()
+                continue
             except:
-                source = ""
-            continue
+                print('<SEED REQUIRED>')
+                print('add .source to book dir and')
+                input('press enter')
+                continue
         try:
             cmd = int(input('c: '))
         except:
+            print("command must be integer")
             continue
-        if cmd == 0:#create source book
-            world_folder = input('Select Source Schematic:')
-            if world_folder == "":
+        if cmd == 0:#select source
+            directory = glob.glob('books/*.source')
+            print(directory)
+            wid = input('Select Source ID: ')
+            try:
+                sourcename = directory[int(wid)]
+            except:
                 continue
-            #sourcename,source = convertbook(world_folder)
-            sourcename = "books/"+sourcename
-        elif cmd == 1:#blank schematic
-            name = input('Schematic Name:')
-            if name == "":
-                continue
-            mine = _schema()
-            print(mine.pretty_tree())
-            mine.write_file("schema/B"+name+".schematic")
-        elif cmd == 2:#generate schematic
+            handle = open(sourcename,'r')
+            source = handle.read()
+            handle.close()
+        elif cmd == 1:#generate schematic
             name = input('Schematic Name:')
             if name == "":
                 continue
             mpl,mps = genblst()
-            with open('books/'+filename, 'w') as fi:
-                fi.write(mps)
+            with open('books/'+name, 'w') as _:
+                _.write(mps)
             mine = _schema(blst=mpl)
             print(mine.pretty_tree())
             mine.write_file("schema/"+name+".schematic")
-        elif cmd == 3:#random schematic
-            """for demonstration purposes,
-no book can be made but can is a valid schematic
-will crash game if loaded"""
-            name = input('Schematic Name:')
-            if name == "":
-                continue
-            mpl = [random.choice(range(197)) for _ in range(4194304)]
-            #mps = ''.join(mpl)
-            """with open('books/'+filename, 'w') as fi:
-                fi.write(mps)"""
-            print("book cannot be generated, possible values exceed 91")
-            mine = _schema(blst=mpl)
-            print(mine.pretty_tree())
-            mine.write_file("schema/R"+name+".schematic")
-        elif cmd == 4:#exit
+        elif cmd == 3:#exit
             break
-        elif cmd == 5:#random schematic LEGAL
-            """for demonstration purposes,
-book can be made and is a valid schematic, but it
-is completely random, slows down game to a halt"""
+        elif cmd == 2:#test schematic
             name = input('Schematic Name:')
+            try:
+                typ = input('Type? B - Blank, R - Random, L - Random Legal\n: ').lower()
+            except:
+                typ ='b'
             if name == "":
                 continue
-            mpl = [index[random.choice(range(91))] for _ in range(4194304)]
-            mps = ''.join(mpl)
-            with open('books/'+name, 'w') as fi:
-                fi.write(mps)
-            mine = _schema(blst=[iindex[_] for _ in mpl])
+            if typ == 'b':
+                mine = _schema()
+            elif typ == 'r':
+                mine = _schema(blst=[iindex[_] for _ in [random.choice(range(197)) for _ in range(4194304)]])
+            elif typ == 'l':
+                mpl = [random.choice(range(90)) for _ in range(4194304)]
+                mps = ''.join(mpl)
+                with open('books/'+name+".book", 'w') as _:
+                    _.write(mps)
+                mine = _schema(blst=[iindex[_] for _ in mpl])
+            else:
+                typ = 'b'
+                mine = _schema()
             print(mine.pretty_tree())
-            mine.write_file("schema/R"+name+".schematic")
+            mine.write_file("schema/"+typ.upper()+name+".schematic")
         else:
             print("Command {} is not found".format(cmd))
     return 0
