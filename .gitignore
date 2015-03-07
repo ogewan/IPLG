@@ -5,3 +5,7 @@ mcsaves/options.txt
 *.rar
 *.txt
 *.tmp
+*.book
+*.rlay
+*.schematic
+*.ppt
