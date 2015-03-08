@@ -7,6 +7,7 @@ from struct import pack, unpack
 import array, math
 import glob
 from collections import Counter
+import numpy as np
 # local module
 try:
     import nbt
@@ -465,17 +466,17 @@ def gbba(blocksList, buffer=False):
         return BytesIO(pack(">i", length)+gbba(blocksList))
     else:
         return array.array('B', blocksList).tostring()
-#@profile
-def main(auto=False,fold='firstrun',fake=0):
+
+def main(gue=False,fake=False,fold='firstrun'):
     gui = """
 #########################################################
-Intelligent Procedural Level Generation #3.00
-using Minecraft, MCEdit, NBTExplorer
+Intelligent Procedural Level Generation #5.00
+using Minecraft, MCEdit, NBTExplorer, numpy, threading
 source: {}
 cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
 """
     while True:
-        if(auto):
+        if(gue!=False):
             sourcename = glob.glob('books/*.source')[0]
             f = open(sourcename,'r')
             source = f.read()
@@ -492,7 +493,7 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                     f.close()
                     continue
                 except:
-                    print('<SEED REQUIRED>')
+                    print('<SOURCE REQUIRED>')
                     print('add .source to book dir and')
                     input('press enter')
                     continue
@@ -609,13 +610,24 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
 
 
 if __name__ == '__main__':
-    """schmatic = _schema()
-    print(schmatic.pretty_tree())
-    schmatic.write_file("artificial2.schematic")"""
-    if len(sys.argv) >= 1:
+    g = False
+    f = False
+    if len(sys.argv) >= 2:
         try:
-            sys.exit(main(True,sys.argv[1],fake=2))
+            sys.argv.index("-g")
+            g = True
         except:
-            sys.exit(main(True,fake=2))
+            pass
+        try:
+            sys.argv.index("-f")
+            f = True
+        except:
+            pass
+        if g and f and:
+            sys.exit(main(g,f))
+        elif g:
+            sys.exit(main(g))
+        elif f:
+            sys.exit(main(fake=f))
     else:
         sys.exit(main())

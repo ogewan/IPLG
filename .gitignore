@@ -9,3 +9,5 @@ mcsaves/options.txt
 *.rlay
 *.schematic
 *.ppt
+*.source
+*.nbok
