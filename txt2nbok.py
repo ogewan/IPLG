@@ -1,3 +1,4 @@
+from collections import Counter
 import numpy as np
 if __name__ == '__main__':
     name = input("Source name: ")
@@ -6,6 +7,11 @@ if __name__ == '__main__':
     w = q.read()
     q.close()
     e = w.replace('\n','  ')
-    k = np.fromstring(e, dtype=np.uint8, sep='  ')
-    #k.tofile('books/'+result)
-    np.save('books/'+result, k)
+    e = e.split('  ')
+    e.pop()
+    #j = Counter(e)
+    #print(j)
+    k = np.array(e, dtype=np.uint8)
+    print(Counter(k))
+    k.tofile('books/'+result)
+    #np.save('books/'+result, k)
