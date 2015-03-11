@@ -8,6 +8,7 @@ import array, math
 import glob
 from collections import Counter
 import numpy as np
+from operator import itemgetter
 # local module
 try:
     import nbt
@@ -43,40 +44,28 @@ def individual(length):
     return np.random.randint(91, size=length).reshape(128,128,256)
 
 def quilt(length,s =''):
-    print("quilted individual")
+    fault = 0
+    print("quilted individual v2")
     if s == '':
         sys.exit(1)
-    #res = []
-    relamap = relmap
-    #TODO
-    if relamap==[]:
-        relamap = relationary(s)
-    res = [(-1,0)]*length
-    for b in range(int(length*0.00025)):#randomly choose 0.0025% of blocks
-        res[random.randint(0,length-1)] = (random.randint(0,90),0)
-    
-    while True:#loop till map complete
-        e = 0
-        try:
-            res.index((-1,0))#raises exception if no more -1 blocks; aka map complete
-            while True:
-                try:
-                    targ = res.index((e,0))
-                    res[targ] = (e,1)#set flag on solid block
-                    #grow to surrounding blocks
-                    FSRC = list(s)
-                    random.shuffle(FSRC)
-                    me = s[FSRC.index(e)]
-                except ValueError:
-                    if e >= 90:
-                        break
-                    e+=1
-                    continue
-        except ValueError:
-            break
-    res = [index[_] for _ in res]
-    print("     WARNING: quilt() unfinished, Defaulting to individual()")
-    return np.random.randint(91, size=length).reshape(128,128,256)#RANDOM
+    try:
+        relam = np.fromfile(glob.glob('books/*.rlay')[0]).reshape(197,3,3,3,197)
+    except:
+        relam = np.zeros((197,3,3,3,197))
+        #create relay
+        for x in s.flatten():
+            pass
+        relam.tofile('books/0.rlay')
+    res = np.zeros((128,128,256),dtype=np.uint8) - 1
+    """for b in range(int(length*0.00025)):#randomly choose 0.0025% of blocks
+        ranid = np.random.randint(length)
+        res[ranid,0] = s.flatten()[ranid*(int(len(s)/length))]
+    while 255 in res:#loop till map complete
+        if fault>=length:
+            print("OVERFLOW, quilt() has gone to far")
+            #sys.exit(100)
+    """
+    return res
 
 def population(s='',count=20, ran=False,length=4194304):
     """Create a number of individuals (i.e. a population).
@@ -87,7 +76,6 @@ def population(s='',count=20, ran=False,length=4194304):
     max: the maximum possible value in an individual's list of values
     """
     print("REAL POPULATION")
-    c = []
     if ran:
         c = np.array([individual(length) for x in range(count)],dtype=np.uint8)
     else:
@@ -97,63 +85,43 @@ def population(s='',count=20, ran=False,length=4194304):
 def artpop(count=20, length=4194304):
     """create artificial population, non random individuals"""
     print("FICTIONAL POPULATION")
-    return np.array([[x%90]*length for x in range(count)],dtype=np.uint8)
+    return np.array([[x%90]*length for x in range(count)],dtype=np.uint8).reshape(count,128,128,256)
 
-def fitness(individual, target=0):
+def fitness(individual, s='', target=0):
     """
     Determine the fitness of an individual. Higher is better.
 
     individual: the individual to evaluate
     target: the target number individuals are aiming for
     """
-    #todo
-    score = 50000
-    stats = Counter(individual)
-    if stats['A'] >= len(individual)/2:#air is more than half
-        score += 10000
-    if stats['A'] >= sorted(stats.values(),reverse=True)[0]:#air is most common
-        score += 5000
-    #print(index(stats['A']))
+    #return np.random.randint(0,50000)
     try:
-        if sorted(stats.values(),reverse=True).index(stats['A']) > 45:#air is top 45 blocks
-            score += 2500
-        else:
-            score -= 5000
+        srccn = np.fromfile(glob.glob('books/*.cont')[0])
     except:
-        score -= 1000
-    spl = np.split(individual.flatten(),2)
-    for b in spl[0]:
-        if b == 0:
-            score += 1
-        elif ((b<=4)and(b>0)) or ((b>=8)and(b<=20)) or b==24 or b==31 or b==32 or ((37<=b)and(40>=b))or b==48 or b==59 or b==60 or ((b>=78)and(b<=83)) or b==142 or b==103 or b==111:
-            score -= 2
-        else:
-            score -= 10
-    for b in spl[1]:
-        if b==0:
-            score -= 1
-        elif ((b<=5)and(b>2)) or ((b>=7)and(b<=11)) or((13<=b)and(16>=b)) or b==48 or b==56 or b==73 or b==129:
-            score += 1
-        else:
-            score -= 10
-    return score
+        srccn = np.zeros(197)
+        scntt = Counter(s)
+        for x in range(197):
+            srccn[x] = scntt[x]
+        srccn.tofile('books/0.cont')
+    stats = np.zeros(197)
+    stcnt = Counter(individual.flatten())
+    for x in range(197):
+        stats[x] = stcnt[x] 
+    return 1000000 - np.sum(np.fabs(stats - (srccn/len(individual))))
 
-def grade(pop, target=0):
+def grade(pop, s='',target=0):
     'Find average fitness for a population.'
-    arr = [fitness(x, target) for x in pop]
-    #print('\n')
+    arr = np.array([fitness(x, s, target) for x in pop])
     print(arr)
-    summed = sum(arr)
+    summed = np.sum(arr)
     return summed / (len(pop) * 1.0)
 
 def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_select=0.05, mutate=0.01):
-    print("start evolve")
-    graded = [(fitness(x, target), x) for x in pop]
-    graded = np.array([x[1] for x in sorted(graded,reverse=True)],dtype=np.uint8)
+    #print("start evolve")
+    graded = np.array([x[1] for x in sorted([(fitness(x, target), x) for x in pop],key=itemgetter(0),reverse=True)],dtype=np.uint8)
     retain_length = int(len(graded)*retain)
     parents = graded[:retain_length]
-    # randomly add other individuals to
-    # promote genetic diversity
+    # randomly add other individuals to promote genetic diversity
     for individual in graded[retain_length:]:
         if random_select > random.random():
             np.append(parents,individual)
@@ -163,14 +131,9 @@ def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_s
             for x in range(int(length*0.01)):
                 #mutate 1% of the positions of an individual
                 pos_to_mutate = np.random.randint(0, len(individual))
-                # this mutation is not ideal, because it
-                # restricts the range of possible values,
-                # but the function is unaware of the min/max
-                # values used to create the individuals,
                 individual = individual.flatten()
                 individual[pos_to_mutate] = np.random.choice(s)
                 individual.reshape(128,128,256)
-                #randint(min(individual), max(individual))
     # crossover parents to create children
     parents_length = len(parents)
     desired_length = len(pop) - parents_length
@@ -183,7 +146,7 @@ def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_s
             male = parents[male].flatten()
             female = parents[female].flatten()
             #chunk select: (x%128)<16 and (x%16384)<2048
-            child = np.zeros(128*128*256, dtype=uint8)
+            child = np.zeros(128*128*256, dtype=np.uint8)
             print("C"+str(iuo)+",",end="",flush=True)
             for k in range(4194304):
                 if ((k%128)%32)<16 and ((k%16384)%4096)<2048:
@@ -192,17 +155,13 @@ def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_s
                     child[k] = male[k]
                 else:
                     child[k] = female[-k]#reversed of female (adds genetic diversity)
-                    #sys.stdout.write("f")
-            #half = len(male) / 2
-            #child = male[:half] + female[half:]
             children.append(child)
             iuo = iuo+1
-    #print("\n")
-    children = np.array(children,dtype=np.uint8).reshape(128,128,256)
-    parents = np.concatenate(parents,children)
+    children = np.array(children,dtype=np.uint8)
+    children = children.reshape(desired_length,128,128,256)
+    parents = np.concatenate((parents,children))
     if end:
-        parents = [(fitness(x, target), x) for x in parents]
-        parents = np.array([x[1] for x in sorted(parents,reverse=True)],dtype=np.uint8)
+        parents = np.array([x[1] for x in sorted([(fitness(x, target), x) for x in parents],key=itemgetter(0),reverse=True)],dtype=np.uint8)
     return parents
 
 def _schema(blst=[0]*4194304,h=256,l=128,w=128):
@@ -228,7 +187,6 @@ def _schema(blst=[0]*4194304,h=256,l=128,w=128):
     ])
     return result
 
-
 def gbba(blocksList, buffer=False):
     """Return a list of all blocks in this chunk."""
     if buffer:
@@ -237,7 +195,7 @@ def gbba(blocksList, buffer=False):
     else:
         return array.array('B', blocksList).tostring()
 
-def main(gue=False,fake=1,fold='firstrun'):
+def main(gue=True,fake=False,fold='firstrun'):
     gui = """#########################################################
 Intelligent Procedural Level Generation #5.00
 using Minecraft, MCEdit, NBTExplorer, numpy, threading
@@ -292,11 +250,11 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 except:
                     fake = 1
                 try:
-                    psize = math.fabs(int(input('Pop Size: ')))
+                    psize = int(math.fabs(int(input('Pop Size: '))))
                 except:
                     psize = 20
                 try:
-                    gennm = math.fabs(int(input('Number of Generations: ')))
+                    gennm = int(math.fabs(int(input('Number of Generations: '))))
                 except:
                     gennm = 10
             if name == "":
@@ -313,9 +271,9 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 p = population(source,psize,True)
             else:
                 p = population(source,psize)
-            fitness_history = np.zeros(gennm+1, dtype=np.uint8)
+            fitness_history = np.zeros(gennm+1)
             print("Int Grade")
-            fitness_history[0] = grade(p)
+            fitness_history[0] = grade(p,s=source)
             print("generation INTIAL")
             print(fitness_history[0])
             for i in range(gennm):
@@ -325,11 +283,11 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 else:
                     p = evolve(p,s=source)
                 fitness_history[i+1] = grade(p)
-                print(fitness_history[0])
+                print(fitness_history[i+1])
             jkl = 0
             for _ in p:
                 _ = _.flatten()
-                _.tofile(k+str(jkl)+'.book')
+                _.tofile(k+str(jkl)+'.nbok')
                 mine = _schema(blst=_.tolist())
                 mine.write_file(j+str(jkl)+'.schematic')
                 jkl = jkl+1
@@ -360,7 +318,7 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 mp.tofile('books/'+typ.upper()+name+".book")
                 mine = _schema(mp.tolist())
             elif typ == 's':
-                mp = np.fromfile("books/"+name+".nbok", dtype=uint8)
+                mp = np.fromfile("books/"+name+".nbok", dtype=np.uint8)
                 mine = _schema(mp.tolist())
             else:
                 typ = 'b'
@@ -566,11 +524,62 @@ def relationary(source):
             p.write('@'.join(bar))
     return rela
 
-def access(filename):
-    #get string from filename
-    return list(open(filename,'r').read())
-
-def deactv(string,name="child.tmp"):
-    with open(name, 'w') as p:
-        p.write(string)
-    return name
+def quiltOLD(length,s =''):
+    fault = 0
+    print("quilted individual")
+    if s == '':
+        sys.exit(1)
+    try:
+        relam = np.fromfile(glob.glob('books/*.rlay')[0]).reshape(197,3,3,3,197)
+        #print(relam.shape)
+    except:
+        relam = np.zeros((197,3,3,3,197))
+        #create relay
+        for x in s.flatten():
+            pass
+        #np.fabs(relam[0,0,0,0]-np.random.random()).argsort()[0]
+        #index of percentage closest to random of the array at 0,0,0 of block 0 eq.to block type
+        relam.tofile('books/0.rlay')
+    res = np.array([(-1,0) for x in range(length)],dtype=np.uint8)#.reshape(128,128,256,2)
+    for b in range(int(length*0.00025)):#randomly choose 0.0025% of blocks
+        ranid = np.random.randint(length)
+        res[ranid,0] = s.flatten()[ranid*(int(len(s)/length))]
+    while [255,0] in res:#loop till map complete
+        #A tag (x,y) can be in one of three states:
+        #(255,0) is unset and unbuilt, has no type yet, do not grow, overwritable
+        #(x!255,0) is set and unbuilt, type set by growth ftn, grow, do not overwrite
+        #(x!255,y>0) is set and built, this block has been grown, do not overwrite, do not grow
+        biz = res[:,0].argsort()#descending res index
+        print(str(Counter(res[:,0]))+" "+str(fault))
+        for u in biz:
+            if res[u,1]:#if (?,x>0)built, block already grown, skip
+                #print("BUILT")
+                continue
+            if res[u,0]>197:#if (255,?)unset, if -1 detected, make a array to loop
+                #print("unset")
+                break
+            f = res[u,0]#print(f)#print(relam[res[u,0]])#print(relam.shape)
+            for i in relam[res[u,0]]:#print(i)
+                a = np.unravel_index(u, (128,128,256))
+                if res.shape != (128,128,256,2):
+                    res = res.reshape(128,128,256,2)
+                for x in range(3):#print(i[x])
+                    for y in range(3):#print(i[x,y])
+                        for z in range(3):
+                            if x==1 and y==1 and z==1:
+                                continue
+                            if (a[0]+x-1)<0 or (a[0]+x-1)>127 or(a[1]+y-1)<0 or (a[1]+y-1)>127 or(a[2]+z-1)<0 or (a[2]+z-1)>255:
+                                continue
+                            res[a[0]+x-1,a[1]+y-1,a[2]+z-1,0] = np.fabs(relam[f,x,y,z]-np.random.random()).argsort()[0]
+                            #index of percentage closest to random of the array at 0,0,0 of block 0 eq.to block type
+                            #res[a[0]+x-1,a[1]+y-1,a[2]+z-1,1] = 1
+                            #print(res[a[0]+x-1,a[1]+y-1,a[2]+z-1])
+                            fault += 1
+            res = res.reshape(length,2)
+            res[u,1] = 1
+        if fault>=length:
+            print("OVERFLOW, quilt() has gone to far")
+            #sys.exit(100)
+    res = nd.array([x[0] for x in res.tolist()],dtype=np.uint8).reshape(128,128,256)
+    #print("     WARNING: quilt() unfinished, Defaulting to individual()")
+    return res

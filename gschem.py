@@ -222,7 +222,7 @@ def relationary(source):
             foo =  []
             for a in rela[z]:#[]*27
                 for c in rela[z][a]:#[]*91
-                    rela[z][a][c] = 
+                    rela[z][a][c] = 0
                 foo.append('~'.join(rela[z][a]))
             bar.append('!'.join(foo))
         print("Printing")
@@ -250,6 +250,8 @@ def quilt(length,s ='',r=False):
         sys.exit(1)
     #res = []
     relamap = relmap
+    print("     WARNING: quilt() unfinished, Defaulting to individual()")
+    return [index[random.choice(range(90))] for x in range(length) ]#RANDOM
     #TODO
     if relamap==[] and r:
         relamap = relationary(s)
@@ -327,6 +329,7 @@ def fitness(individual, target=0,disk=False):
     target: the target number individuals are aiming for
     """
     #todo
+    return random.randint(0,50000)
     score = 50000
     stats = Counter(individual)
     if stats['A'] >= len(individual)/2:#air is more than half
