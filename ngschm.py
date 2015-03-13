@@ -39,9 +39,9 @@ verbose = 0
 class foo():
     id = 10
 
-def printv(*args, sep=' ', end='\n', file=None, level=1):
+def printv(*args, sep=' ', end='\n', file=None, level=1,flush=False):
 	if verbose>=level:
-		print(*args, sep=' ', end='\n', file=None)
+		print(*args, sep=sep, end=end, file=file,flush=flush)
 
 def probability(a,d):
     """return index of random element based on probability"""
@@ -67,7 +67,7 @@ def individual(length):
     return np.random.randint(91, size=length).reshape(256,128,128)
 
 def quilt(length,s =''):
-    fault = 0
+    #fault = 0
     #mod = 32
     printv("quilted individual v2")
     if s == '':
@@ -100,16 +100,24 @@ def quilt(length,s =''):
         for y in range(128):
             for z in range(128):
                 if (z%32)<16 and (y%32)<16:
-                    #if (z%32)==0 or (y%32)==0:
-                        #b = np.random.randint(512-16-max(z, y))
-                    #print(b,z,y,z+b,y+b)
                     res[x,y,z] = s[x,y+b,z+b]
                 elif z>=16 and y<16:
                     res[x,y,z] = probability(relam[res[x,y,z-1],0],res[x,y,z-1])
+                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                        if res[x-5,y,z] == 0:
+                            res[x,y,z] = 0
                 elif z<16 and y>=16:
-                    res[x,y,z] = s[x,y+c,z+c]#res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
-                elif z>=16 and y>=16:
                     res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                        if res[x-5,y,z] == 0:
+                            res[x,y,z] = 0
+                elif (z%32)>=16 and (y%32)>=16:
+                    res[x,y,z] = s[x,y+c,z+c]
+                else:
+                    res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                        if res[x-5,y,z] == 0:
+                            res[x,y,z] = 0
                 #else:
                     #res[x,y,z] = 0#np.fabs(relam[f,x,y,z]-np.random.random()).argsort()[0]
     """for b in range(int(length*0.00025)):#randomly choose 0.0025% of blocks
@@ -120,10 +128,9 @@ def quilt(length,s =''):
             printv("OVERFLOW, quilt() has gone to far")
             #sys.exit(100)
     """
-    #np.sort(relam.flatten(),kind='mergesort')[::-1].tofile("RELAYCnt.txt", sep=" ")
     return res
 
-def population(s='',count=20, ran=False,length=4194304):
+def population(s='',count=20, ran=False,org=False,length=4194304):
     """Create a number of individuals (i.e. a population).
 
     count: the number of individuals in the population
@@ -136,6 +143,15 @@ def population(s='',count=20, ran=False,length=4194304):
         c = np.array([individual(length) for x in range(count)],dtype=np.uint8)
     else:
         c = np.array([quilt(length,s) for x in range(count)],dtype=np.uint8)
+    if org:
+        for u in range(count):
+            _ = c[u].flatten()
+            l = "books/"+org+"ORG/"
+            if not os.path.exists(l):
+                os.makedirs(l)
+            _.tofile(l+str(u)+'.nbok')
+            mine = _schema(blst=_.tolist())
+            mine.write_file("schema/"+org+"ORG/"+str(u)+'.schematic')
     return c
 
 def artpop(count=20, length=4194304):
@@ -254,7 +270,7 @@ def gbba(blocksList, buffer=False):
 def main(gue=False,fake=False,fold='qt'):
     gui = """#########################################################
 Intelligent Procedural Level Generation #5.00
-using Minecraft, MCEdit, NBTExplorer, numpy, threading
+using Minecraft, MCEdit, NBTExplorer, numpy, #threading#
 source: {}
 cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
 """
@@ -295,9 +311,7 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 name = fold
                 psize = 20
                 gennm = 10
-                #auto
-                psize = 2
-                gennm = 0
+                org = 1
             else:
                 name = input('Book Folder name: ')
                 try:
@@ -312,6 +326,10 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                     gennm = int(math.fabs(int(input('Number of Generations: '))))
                 except:
                     gennm = 10
+                try:
+                    org = int(input('save intial 1 or discard intial 0\n'))
+                except:
+                    org = 0
             if name == "":
                 continue
             j = "schema/"+name+"/"
@@ -325,10 +343,14 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
             elif fake==2:
                 p = population(source,psize,True)
             elif fake==3:
+                #by default saves initial
                 gennm = 0
                 p = population(source,psize)
             else:
-                p = population(source,psize)
+                if org:
+                    p = population(source,psize,org=name)
+                else:
+                    p = population(source,psize)
             fitness_history = np.zeros(gennm+1)
             printv("Int Grade")
             fitness_history[0] = grade(p,s=source)
