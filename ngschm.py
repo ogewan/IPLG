@@ -35,7 +35,7 @@ quilting can be used to grow individuals from a source
 No transcription will be done
 evolve: breeding cross over chunk by chunk
 """
-verbose = 0
+verbose =0
 class foo():
     id = 10
 
@@ -66,7 +66,7 @@ def individual(length):
     printv("random individual")
     return np.random.randint(91, size=length).reshape(256,128,128)
 
-def quilt(length,s =''):
+def quilt(length,s ='',legacy=0):
     #fault = 0
     #mod = 32
     printv("quilted individual v2")
@@ -93,44 +93,120 @@ def quilt(length,s =''):
         print(len(s.flatten()))
         relam.tofile('books/0.rlay')
     res = np.zeros((256,128,128),dtype=np.uint8) - 1
-    #a = np.random.randint(112)#64)
-    b = np.random.randint(384)
-    c = np.random.randint(384)
-    for x in range(256):
-        for y in range(128):
-            for z in range(128):
-                if (z%32)<16 and (y%32)<16:
-                    res[x,y,z] = s[x,y+b,z+b]
-                elif z>=16 and y<16:
-                    res[x,y,z] = probability(relam[res[x,y,z-1],0],res[x,y,z-1])
-                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
-                        if res[x-5,y,z] == 0:
-                            res[x,y,z] = 0
-                elif z<16 and y>=16:
-                    res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
-                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
-                        if res[x-5,y,z] == 0:
-                            res[x,y,z] = 0
-                elif (z%32)>=16 and (y%32)>=16:
-                    res[x,y,z] = s[x,y+c,z+c]
-                else:
-                    res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
-                    if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
-                        if res[x-5,y,z] == 0:
-                            res[x,y,z] = 0
-                #else:
-                    #res[x,y,z] = 0#np.fabs(relam[f,x,y,z]-np.random.random()).argsort()[0]
-    """for b in range(int(length*0.00025)):#randomly choose 0.0025% of blocks
-        ranid = np.random.randint(length)
-        res[ranid,0] = s.flatten()[ranid*(int(len(s)/length))]
-    while 255 in res:#loop till map complete
-        if fault>=length:
-            printv("OVERFLOW, quilt() has gone to far")
-            #sys.exit(100)
-    """
+    if legacy == False:
+        b = np.random.randint(384)
+        c = np.random.randint(384)
+        for x in range(256):
+            for y in range(128):
+                for z in range(128):
+                    if (z%32)<16 and (y%32)<16:
+                        res[x,y,z] = s[x,y+b,z+b]
+                    elif z>=16 and y<16:
+                        res[x,y,z] = probability(relam[res[x,y,z-1],0],res[x,y,z-1])
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+                    elif z<16 and y>=16:
+                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+                    elif (z%32)>=16 and (y%32)>=16:
+                        res[x,y,z] = s[x,y+c,z+c]
+                    else:
+                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+    elif legacy ==1:
+        try:
+            nst = np.load(glob.glob('books/*.npz')[0])
+        except:
+            #relam = np.zeros(256,512,512)
+            #create relay
+            nst = [[] for x in range(197)]
+            ss = s.flatten()
+            for n in range(256*512*512):
+                nst[ss[n]].append(n)
+            for m in range(197):
+                nst[m] = np.array(nst[m], dtype=np.uint32)
+            np.savez("books/0",*nst)
+                
+        b = np.random.randint(384)
+        c = np.random.randint(384)
+        #access = (0,0,0)
+        #print(nst.files)
+        i = 0
+        es = s.flatten()
+        for x in range(256):
+            print((i/256)*100,'%',sep='')
+            i+=1
+            for y in range(128):
+                #sys.stdout.write('.')
+                #sys.stdout.flush()
+                for z in range(128):
+                    #if z == 0:
+                        #print('***[',x,y-1,z,']','{',res[x,y-1,z],'}')
+                    if (z%32)<16 and (y%32)<16:
+                        res[x,y,z] = s[x,y+b,z+b]
+                    elif z>=16 and y<16:
+                        res[x,y,z] = es[np.random.choice(nst['arr_'+str(res[x,y,z-1])])+1]
+                        #print('[',x,y,z,']','{',res[x,y,z],'}')
+                        """print()
+                        ok = np.random.choice(nst['arr_'+str(res[x,y,z-1])]+1)
+                        access = np.unravel_index(ok,[256,512,512])
+                        #access = (access[0],access[1], access[2] + 1)
+                        #print(ok,access,'[',x,y,z-1,']','{',res[x,y,z-1],'}')
+                        res[x,y,z] = s[access]#"""
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+                    elif z<16 and y>=16:
+                        res[x,y,z] = es[np.random.choice(nst['arr_'+str(res[x,y-1,z])])+1]
+                        #print('[',x,y,z,']','{',res[x,y,z],'}')
+                        """print('[',x,y,z-1,']','{',res[x,y,z-1],'}')
+                        ok = np.random.choice(nst['arr_'+str(res[x,y-1,z])]+1)
+                        access = np.unravel_index(ok,[256,512,512])
+                        #access = (access[0],access[1], access[2] + 1)
+                        #print(ok,access,'[',x,y,z-1,']','{',res[x,y,z-1],'}')
+                        res[x,y,z] = s[access]#"""
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+                    elif (z%32)>=16 and (y%32)>=16:
+                        res[x,y,z] = s[x,y+c,z+c]
+                    else:
+                        res[x,y,z] = es[np.random.choice(nst['arr_'+str(res[x,y,z-1])])+1]
+                        #print('[',x,y,z,']','{',res[x,y,z],'}')
+                        """print('[',x,y,z-1,']','{',res[x,y,z-1],'}')
+                        ok = np.random.choice(nst['arr_'+str(res[x,y,z-1])])+1
+                        access = np.unravel_index(ok,[256,512,512])
+                        #access = (access[0],access[1], access[2] + 1)
+                        #print(ok,access,'[',x,y,z-1,']','{',res[x,y,z-1],'}')
+                        res[x,y,z] = s[access]#"""
+                        if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
+                            if res[x-5,y,z] == 0:
+                                res[x,y,z] = 0
+    else:#older version
+        b = np.random.randint(384)
+        c = np.random.randint(384)
+        for x in range(256):
+            for y in range(128):
+                for z in range(128):
+                    if z<16 and z<16:
+                        res[x,y,z] = s[x,y+b,z+b]
+                    elif z>=16 and y<16:
+                        res[x,y,z] = probability(relam[res[x,y,z-1],0],res[x,y,z-1])
+                    elif z<16 and y>=16:
+                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                    elif z>=16 and y>=16:
+                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                    else:
+                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+
     return res
 
-def population(s='',count=20, ran=False,org=False,length=4194304):
+def population(s='',count=20, ran=False,org=False,length=4194304,leg=1):
     """Create a number of individuals (i.e. a population).
 
     count: the number of individuals in the population
@@ -142,22 +218,31 @@ def population(s='',count=20, ran=False,org=False,length=4194304):
     if ran:
         c = np.array([individual(length) for x in range(count)],dtype=np.uint8)
     else:
-        c = np.array([quilt(length,s) for x in range(count)],dtype=np.uint8)
+        c = np.array([quilt(length,s,leg) for x in range(count)],dtype=np.uint8)
     if org:
         for u in range(count):
             _ = c[u].flatten()
             l = "books/"+org+"ORG/"
+            m = "schema/"+org+"ORG/"
             if not os.path.exists(l):
                 os.makedirs(l)
+            if not os.path.exists(m):
+                os.makedirs(m)
             _.tofile(l+str(u)+'.nbok')
             mine = _schema(blst=_.tolist())
             mine.write_file("schema/"+org+"ORG/"+str(u)+'.schematic')
     return c
 
-def artpop(count=20, length=4194304):
-    """create artificial population, non random individuals"""
+def artpop(exist=False, count=20, length=4194304):
+    """create artificial population, non random individuals or existing individuals"""
     printv("FICTIONAL POPULATION")
-    return np.array([[x%90]*length for x in range(count)],dtype=np.uint8).reshape(count,256,128,128)
+    if exist:#exist == foldername of individuals, which must have numbered names
+        #use ready made nboks, can be used to add more evolutions, or make a new evolutionary path
+        numobk = len(glob.glob("books/"+exist+"/*.nbok"))
+        c = np.array([np.fromfile("books/"+exist+"/"+str(x%numobk)+".nbok",dtype=np.uint8).reshape(256,128,128) for x in range(count)],dtype=np.uint8)
+    else:
+        c = np.array([[x%90]*length for x in range(count)],dtype=np.uint8).reshape(count,256,128,128)
+    return c
 
 def fitness(individual, s='', target=0):
     """
@@ -204,7 +289,7 @@ def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_s
                 #mutate 1% of the positions of an individual
                 pos_to_mutate = np.random.randint(0, len(individual))
                 individual = individual.flatten()
-                individual[pos_to_mutate] = np.random.choice(s)
+                individual[pos_to_mutate] = np.random.choice(s.flatten())
                 individual.reshape(256,128,128)
     # crossover parents to create children
     parents_length = len(parents)
@@ -226,11 +311,12 @@ def evolve(pop, end=False, s='', length=4194304, target=0, retain=0.25, random_s
                 elif ((k%128)%32)>=16 and ((k%16384)%4096)>=2048:
                     child[k] = male[k]
                 else:
-                    child[k] = female[-k]#reversed of female (adds genetic diversity)
+                    child[k] = female[k]#reversed of female (adds genetic diversity)
             children.append(child)
             iuo = iuo+1
     children = np.array(children,dtype=np.uint8)
     children = children.reshape(desired_length,256,128,128)
+    #print("shape", parents.shape, children.shape)
     parents = np.concatenate((parents,children))
     if end:
         parents = np.array([x[1] for x in sorted([(fitness(x, target), x) for x in parents],key=itemgetter(0),reverse=True)],dtype=np.uint8)
@@ -267,7 +353,7 @@ def gbba(blocksList, buffer=False):
     else:
         return array.array('B', blocksList).tostring()
 
-def main(gue=False,fake=False,fold='qt'):
+def main(gue=False,fake=False,fold='et'):
     gui = """#########################################################
 Intelligent Procedural Level Generation #5.00
 using Minecraft, MCEdit, NBTExplorer, numpy, #threading#
@@ -312,10 +398,16 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 psize = 20
                 gennm = 10
                 org = 1
+                exister = "qtORG"
+                #auto
+                name = '3t'
+                psize = 1
+                gennm = 0
+
             else:
                 name = input('Book Folder name: ')
                 try:
-                    fake = int(input('Quilt - 0 or Solid - 1 or Random - 2 or Quilt[NO GEN] - 3\n'))
+                    fake = int(input('Quilt - 0 or Solid - 1 or Random - 2\nQuilt[NO GEN] - 3 or Existing - 4 or Quilt V2 - 5 or Legacy Quilt(Slow) - 6\n'))
                 except:
                     fake = 1
                 try:
@@ -330,6 +422,8 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                     org = int(input('save intial 1 or discard intial 0\n'))
                 except:
                     org = 0
+                if fake==4:
+                    exister = input('Directory of Existing Nboks?\n')
             if name == "":
                 continue
             j = "schema/"+name+"/"
@@ -346,6 +440,18 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 #by default saves initial
                 gennm = 0
                 p = population(source,psize)
+            elif fake==4:
+                p = artpop(exister)
+            elif fake==5:
+                if org:
+                    p = population(source,psize,org=name,leg=1)
+                else:
+                    p = population(source,psize,leg=1)
+            elif fake==6:
+                if org:
+                    p = population(source,psize,org=name,leg=2)
+                else:
+                    p = population(source,psize,leg=2)
             else:
                 if org:
                     p = population(source,psize,org=name)

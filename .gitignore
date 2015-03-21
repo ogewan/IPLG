@@ -12,3 +12,5 @@ mcsaves/options.txt
 *.source
 *.nbok
 *.cont
+*.nst
+*.npz
