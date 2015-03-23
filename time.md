@@ -23,6 +23,11 @@ best case: 5.89
 ((256*128*128)/1000)*5.89 seconds = 24704.46 sec = 6.86235 hours per map (64 chunks)
 ((256*64*64)/1000)*5.89 seconds = 6176.112639999999 sec = 1.71559 hours per map (32 chunks)
 
+timeit('''es[pie:pie+4194304]''','''import numpy as np
+es = np.fromfile("books//0.nsorce",dtype=np.uint8)
+pie = np.random.randint(62914560)''',number=1)
+1.5189956564935012e-05
+
 ngschm.py - premade 20 individuals, 10 generations w/ fitness
 Exit code      : 0
 Elapsed time   : 828.16

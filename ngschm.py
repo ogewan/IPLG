@@ -35,7 +35,7 @@ quilting can be used to grow individuals from a source
 No transcription will be done
 evolve: breeding cross over chunk by chunk
 """
-verbose =0
+verbose =10
 class foo():
     id = 10
 
@@ -66,7 +66,7 @@ def individual(length):
     printv("random individual")
     return np.random.randint(91, size=length).reshape(256,128,128)
 
-def quilt(length,s ='',legacy=0):
+def quilt(length,s ='',legacy=False):
     #fault = 0
     #mod = 32
     printv("quilted individual v2")
@@ -118,7 +118,7 @@ def quilt(length,s ='',legacy=0):
                         if x-5 >= 0:####REMOVE BLOCKS IN THE AIR
                             if res[x-5,y,z] == 0:
                                 res[x,y,z] = 0
-    elif legacy ==1:
+    elif legacy == 512 and False:
         try:
             nst = np.load(glob.glob('books/*.npz')[0])
         except:
@@ -200,10 +200,10 @@ def quilt(length,s ='',legacy=0):
                     elif z<16 and y>=16:
                         res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
                     elif z>=16 and y>=16:
-                        res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
+                        res[x,y,z] = probability(relam[res[x,y-1,z-1],1],res[x,y-1,z-1])
                     else:
                         res[x,y,z] = probability(relam[res[x,y-1,z],1],res[x,y-1,z])
-
+    print(res)
     return res
 
 def population(s='',count=20, ran=False,org=False,length=4194304,leg=1):
@@ -353,7 +353,7 @@ def gbba(blocksList, buffer=False):
     else:
         return array.array('B', blocksList).tostring()
 
-def main(gue=False,fake=False,fold='et'):
+def main(gue=True,fake=False,fold='Moe'):
     gui = """#########################################################
 Intelligent Procedural Level Generation #5.00
 using Minecraft, MCEdit, NBTExplorer, numpy, #threading#
@@ -367,7 +367,7 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
             cmd = 1
         else:
             try:
-                printv(gui.format(sourcename))
+                print(gui.format(sourcename))
             except:
                 try:
                     sourcename = glob.glob('books/*.nsorce')[0]
@@ -400,8 +400,8 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 org = 1
                 exister = "qtORG"
                 #auto
-                name = '3t'
-                psize = 1
+                #name = '3t'
+                #psize = 1
                 gennm = 0
 
             else:
@@ -493,15 +493,15 @@ cmd: select source - 0, generate schematic - 1, test schematic - 2, exit - 3
                 mine = _schema()
             elif typ == 'r':
                 mp = np.random.randint(197, size=4194304)
-                mp.tofile('books/'+typ.upper()+name+".book")
+                mp.tofile('books/'+typ.upper()+name+".nbok")
                 mine = _schema(mp.tolist())
             elif typ == 'l':
                 mp = np.random.randint(91, size=4194304)
-                mp.tofile('books/'+typ.upper()+name+".book")
+                mp.tofile('books/'+typ.upper()+name+".nbok")
                 mine = _schema(mp.tolist())
             elif typ == 'q':
-                mp = quilt(4194304,source)
-                mp.tofile('books/'+typ.upper()+name+".book")
+                mp = quilt(4194304,source).flatten()
+                mp.tofile('books/'+typ.upper()+name+".nbok")
                 mine = _schema(mp.tolist())
             elif typ == 's':
                 mp = np.fromfile("books/"+name+".nbok", dtype=np.uint8)
