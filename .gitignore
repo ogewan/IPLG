@@ -4,3 +4,13 @@ mcsaves/options.txt
 *.pyc
 *.rar
 *.txt
+*.tmp
+*.book
+*.rlay
+*.schematic
+*.ppt
+*.source
+*.nbok
+*.cont
+*.nst
+*.npz
